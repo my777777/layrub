@@ -259,8 +259,22 @@ class Net {
   void BackwardFromTo(int start, int end, cudaStream_t& stream);
   Dtype ForwardBackward(cudaStream_t& stream) {
   	Dtype loss;
+	for(int i = 0; i < blobs_.size(); ++i){
+//		*(blobs_[i]->Ref()) = blobs_ref_[i];
+		if(*(blobs_[i]->ref()) == -1 || *(blobs_[i]->ref()) == 0)
+			blobs_[i]->assign_ref(blobs_ref_[i]);
+//		LOG(INFO) <<"\t"<< blobs_ref_[i];
+//		LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
+	}
   	Forward(stream, &loss);
+  	for(int i = 0; i < blobs_.size(); ++i){
+//  		LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
+  		CHECK_EQ(*(blobs_[i]->ref()), 0);
+  	}
   	Backward(stream);
+//  	for(int i = 0; i < blobs_.size(); ++i){
+//  	  	LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
+//  	}
   	return loss;
   }
   ///////////////////////////////////////////////////////////////////////////////////
@@ -356,6 +370,8 @@ class Net {
     set<int> the_rest_layer_ids_;
     map<int, int> blobId_layerId_;
     set<int> inplace_layer_ids_;//170728
+    vector<int> blobs_ref_;//170915 keep intermediate blobs reference
+    map<shared_ptr<SyncedMemory>, int> allocated_syncedmem_;//170919 used for debug
 
     class MemoryBlock_{
     private:
@@ -378,7 +394,6 @@ class Net {
       		ref = r;
       	}
     };
-//    void layrub(const NetParameter &param);
     void to_cpu(const NetParameter &param);
     int getMemoryBlock(Blob<Dtype>* top_blob, vector<MemoryBlock_>& memory_blocks);
   //////////////////////////////////////////////////////////////////////////

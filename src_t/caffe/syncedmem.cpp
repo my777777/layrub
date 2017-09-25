@@ -215,6 +215,8 @@ void* SyncedMemory::transfer_to_cpu(cudaStream_t& stream, const size_t size,
 		CaffeMallocHost(&cpu_ptr, size, &cpu_malloc_use_cuda_);
 	}
 	CUDA_CHECK(cudaMemcpyAsync(cpu_ptr, gpu_ptr_, size, cudaMemcpyDeviceToHost,stream));
+	CUDA_CHECK(cudaStreamSynchronize(stream));
+//	CUDA_CHECK(cudaStreamQuery(stream));
 	return cpu_ptr;
 }
 
@@ -223,6 +225,8 @@ void SyncedMemory::transfer_to_gpu(cudaStream_t& stream, const size_t size,
 	CHECK(cpu_ptr);
 	CHECK(gpu_ptr_);
 	CUDA_CHECK(cudaMemcpyAsync(gpu_ptr_, cpu_ptr, size, cudaMemcpyHostToDevice,stream));
+	CUDA_CHECK(cudaStreamSynchronize(stream));
+//	CUDA_CHECK(cudaStreamQuery(stream));
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 

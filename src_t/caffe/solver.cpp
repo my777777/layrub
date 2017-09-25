@@ -290,7 +290,8 @@ void Solver<Dtype>::Solve(const char* resume_file) {
   int start_iter = iter_;
 
   //////////////////////////////////////////////////////////////////////////////
-  CUDA_CHECK(cudaStreamCreate(&transfer_stream_));
+//  CUDA_CHECK(cudaStreamCreate(&transfer_stream_));
+  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamDefault));
   //////////////////////////////////////////////////////////////////////////////
 
   Step(param_.max_iter() - iter_);

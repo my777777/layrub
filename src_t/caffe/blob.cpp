@@ -157,7 +157,7 @@ void Blob<Dtype>::ShareData(const Blob& other) {
   CHECK_EQ(count_, other.count());
   data_ = other.data();
   /////////////////////////////////////170705
-  reference_ = other.reference_;
+  reference_ = other.ref();//170915
   /////////////////////////////////////
 }
 
