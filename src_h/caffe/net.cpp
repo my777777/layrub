@@ -282,23 +282,23 @@ void Net<Dtype>::Init(const NetParameter& in_param) {
 	  to_cpu(param);
  	  layrub(param);
  	  // get the max diff 170807
- 	  int max_diff = 0;
+ 	  size_t max_diff = 0;
  	  for(int layer_id = 1; layer_id < param.layer_size(); ++layer_id){
- 		  int tmp = 0;
+ 		  size_t tmp = 0;
  		  for (int top_id = 0; top_id < top_vecs_[layer_id].size(); ++top_id){
  			  if(top_vecs_[layer_id][top_id]->diff() != top_vecs_[layer_id][top_id]->data()){
  		  			tmp += top_vecs_[layer_id][top_id]->count();
-// 		  			LOG(INFO)<<"layer id = "<<layer_id<<", "<<layer_names_[layer_id]<<", top id = "<<top_id;
+ 		  			LOG(INFO)<<"layer id = "<<layer_id<<", "<<layer_names_[layer_id]<<", top id = "<<top_id;
  			  }
  		  }
  		  for(int bottom_id = 0; bottom_id < bottom_vecs_[layer_id].size(); ++bottom_id){
  			  if(bottom_vecs_[layer_id][bottom_id]->diff() != bottom_vecs_[layer_id][bottom_id]->data()){
  				  tmp += bottom_vecs_[layer_id][bottom_id]->count();
-// 		  		  LOG(INFO)<<"layer id = "<<layer_id<<", "<<layer_names_[layer_id]<<", bottom id = "<<bottom_id;
+ 		  		  LOG(INFO)<<"layer id = "<<layer_id<<", "<<layer_names_[layer_id]<<", bottom id = "<<bottom_id;
  			  }
  		  }
  		  max_diff = std::max(max_diff, tmp);
-// 		  LOG(INFO)<<"diff = "<<tmp<<", layer id = "<<layer_id<<", "<<layer_names_[layer_id];
+ 		  LOG(INFO)<<"diff count()= "<<tmp<<", layer id = "<<layer_id<<", "<<layer_names_[layer_id];
  	  }
  	  LOG(INFO)<<"\tmax_Diff = "<<max_diff*sizeof(Dtype);
   }
@@ -335,7 +335,7 @@ void Net<Dtype>::layrub(const NetParameter &param){
 //	size_t theOtherPart = 0;
 //	int max_theOtherPart = 0;
 	///////////////////////////////////////////////////////////////////////////////////////
-	for (int layer_id = param.layer_size() - 3; layer_id > 1; --layer_id) {
+	for (int layer_id = param.layer_size() - 1; layer_id > 1; --layer_id) {//170926
 		const LayerParameter& layer_param = param.layer(layer_id);
 		if(layrub_able_layertype_.find(layer_param.type()) != layrub_able_layertype_.end()){
 //			bool pass = true;
@@ -388,11 +388,11 @@ int Net<Dtype>::getMemoryBlock(Blob<Dtype>* top_blob, vector<MemoryBlock_>& memo
 		if(memory_blocks[i].getRef() == -1){
 			memory_blocks[i].getMemptr()->resize(top_blob->data()->size());
 			top_blob->SetDataTo(memory_blocks[i].getMemptr());
-			memory_blocks[i].setRef(top_blob->Ref());
+			memory_blocks[i].setRef(top_blob->ref().get());
 			return i;
 		}
 	}
-	MemoryBlock_ tmp(top_blob->data()->size(), top_blob->Ref());
+	MemoryBlock_ tmp(top_blob->data()->size(), top_blob->ref().get()	);
 	top_blob->SetDataTo(tmp.getMemptr());
 	memory_blocks.push_back(tmp);
 	return memory_blocks.size() - 1;
@@ -408,6 +408,12 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 	shared_ptr<SyncedMemory> bn_x_norm_shared(new SyncedMemory(1));
 	shared_ptr<SyncedMemory> bn_x_norm_diff_shared(new SyncedMemory(1));
 	shared_ptr<SyncedMemory> scale_temp_shared(new SyncedMemory(1));
+	//170915
+	blobs_ref_.resize(blobs_.size());
+	for(int i = 0; i < blobs_.size(); ++i){
+		LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->ref());
+		LOG(INFO) << i <<blob_names_[i] << " reference: " <<blobs_ref_[i];
+	}
 	//////////////////////////////////////////////////////////////170810
 //	shared_ptr<SyncedMemory> bn_variance_shared(new SyncedMemory(1));
 //	shared_ptr<SyncedMemory> bn_batch_sum_multiplier_shared(new SyncedMemory(1));
@@ -421,7 +427,7 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 		//170704
 		for(int top_id = 0; top_id < top_vecs_[layer_id].size(); ++top_id)
 			LOG(INFO) << "\tlayer " <<layer_id<<" "<< layer_names_[layer_id] <<", top blob "<< blob_names_[top_id_vecs_[layer_id][top_id]]
-			<<" reference: " << *(top_vecs_[layer_id][top_id]->Ref());
+			<<" reference: " << *(top_vecs_[layer_id][top_id]->ref());
 		const LayerParameter& layer_param = param.layer(layer_id);
 
 		if(layer_param.type() == "ReLU"){//170728
@@ -520,7 +526,7 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 	//				LOG(INFO)<<"\tlayer_id="<<layer_id<<", split_layer_num="<<split_layer_num;
 					LOG(INFO)<<"\t~~~decrease, layer " << layer_names_[tmp_layerId]<< ", bottom blob: "
 						<<blob_names_[bottom_id_vecs_[tmp_layerId][bottom_id]]
-						<<", ref = "<<*(bottom_vecs_[tmp_layerId][bottom_id]->Ref());
+						<<", ref = "<<*(bottom_vecs_[tmp_layerId][bottom_id]->ref());
 				}
 				if(tmp_layerId == layer_id && first_flag){//170729
 					first_flag =false;
@@ -543,7 +549,7 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 //					LOG(INFO)<<"\tlayer_id="<<layer_id<<", split_layer_num="<<split_layer_num<<", inplace_layer_num, "<<inplace_layer_num;
 					LOG(INFO)<<"\t!!!decrease, layer " << layer_names_[tmp_layerId]<< ", top blob: "
 						<<blob_names_[top_id_vecs_[tmp_layerId][top_id]]
-						<<", ref = "<<*(top_vecs_[tmp_layerId][top_id]->Ref());
+						<<", ref = "<<*(top_vecs_[tmp_layerId][top_id]->ref());
 				}
 			}
 //			split_layer_num = 0;
@@ -569,6 +575,7 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 	int tmp_id = 0;//ensure take the SyncedMemory cycle
 	for(int i = 1; i < split_layer_ids_.size(); ++i){//170808 ingore label_split layer
 		LOG(INFO)<<"\tsplit layer id="<<split_layer_ids_[i]<<" " << layer_names_[split_layer_ids_[i]];
+		CHECK_EQ(bottom_vecs_[split_layer_ids_[i]].size(), 1);//170915
 		size_t tmp_size = bottom_vecs_[split_layer_ids_[i]][0]->count()*sizeof(Dtype);
 		int id = tmp_id++ % shared_memory.size();
 		shared_memory[id]->resize(tmp_size);
@@ -582,6 +589,46 @@ void Net<Dtype>::to_cpu(const NetParameter &param){
 		data_size += shared_memory[i]->size();
 	}
 	LOG(INFO)<<"data'_size = "<<data_size;//170719
+	//////////////////////////////////////////////170915
+	for(int i = 0; i < blobs_.size(); ++i){
+		blobs_[i]->assign_ref(blobs_ref_[i]);
+	}
+	LOG(INFO)<<"[allocated syncedMemory summary]";
+//	map<shared_ptr<SyncedMemory>, int> allocated_syncedmem_;
+	int syncedmem_id = 0;
+	for(int i = 0; i < layers_.size(); ++i){
+		LOG(INFO)<<"layer["<<i<<"] "<<layer_names_[i];
+		for(int j = 0; j < top_vecs_[i].size(); ++j){
+			if(allocated_syncedmem_.find(top_vecs_[i][j]->data()) == allocated_syncedmem_.end()){
+				allocated_syncedmem_.insert(std::pair<shared_ptr<SyncedMemory>, int>(top_vecs_[i][j]->data(), syncedmem_id++));
+			}
+			LOG(INFO)<<"\ttop blob["<<j<<"] "<<blob_names_[top_id_vecs_[i][j]]<<" data: "<<top_vecs_[i][j]->data()
+					<<" sycedmem id: "<<allocated_syncedmem_[top_vecs_[i][j]->data()];
+		}
+	}
+	LOG(INFO)<<"allocated syncedmem size = "<<allocated_syncedmem_.size();
+	/*vector<shared_ptr<SyncedMemory> > shared_diffs;
+	size_t size = 0;
+	for(int i = layers_.size()-1; i>0; --i){
+		size = std::max(size, top_vecs_[i].size());
+	}
+	LOG(INFO)<<"max size of top_vecs_[i](0< i <layer_size -1) = "<<size;
+	for(int i = 0; i < size; ++i){
+		shared_ptr<SyncedMemory> tmp(new SyncedMemory(1));
+		shared_diffs.push_back(tmp);
+	}
+	for(int i = 1; i < layers_.size()-1; ++i){
+		if(inplace_layer_ids_.find(i) == inplace_layer_ids_.end() && loss_layer_ids_.find(i) == loss_layer_ids_.end()){
+			for (int top_id = 0; top_id < top_vecs_[i].size(); ++top_id){
+				if(top_vecs_[i][top_id]->diff() != top_vecs_[i][top_id]->data()){
+					shared_diffs[top_id]->resize(top_vecs_[i][top_id]->count()*sizeof(Dtype));
+					top_vecs_[i][top_id]->SetDiffTo(shared_diffs[top_id]);
+					LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
+				}
+			}
+		}
+	}*/
+	//////////////////////////////////////////////
 }
 ////////////////////////////////////////////////////////////////////////////////////
 
@@ -722,6 +769,7 @@ void Net<Dtype>::AppendTop(const NetParameter& param, const int layer_id,
     top_vecs_[layer_id].push_back(blob_pointer.get());
     ////////////////////////////////////////////////////////////////////////////////
     blobId_layerId_[blob_id] = layer_id;
+    blobs_ref_.push_back(0);//170915
     ////////////////////////////////////////////////////////////////////////////////
   }
   if (available_blobs) { available_blobs->insert(blob_name); }
@@ -746,8 +794,11 @@ int Net<Dtype>::AppendBottom(const NetParameter& param, const int layer_id,
   if(layer_param.type() == "Split"){//170705
 //	  LOG(INFO)<<"Split layer top blob count: "<<layer_param.top_size();
 	  blobs_[blob_id]->increaseRef(layer_param.top_size());
+	  blobs_ref_[blob_id] += (layer_param.top_size() + 1);
   }else{
+	  CHECK_EQ(layer_param.top_size(), 1);//170915
 	  blobs_[blob_id]->increaseRef();//170704
+	  blobs_ref_[blob_id] += 1;
   }
   ////////////////////////////////////////////////////////////////////////////
   bottom_id_vecs_[layer_id].push_back(blob_id);
@@ -1330,15 +1381,25 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end, cudaStream_t& stream) {
 	Dtype loss = 0;
 	for (int i = start; i <= end; ++i) {
 //		LOG_IF(INFO, Caffe::root_solver()) << "    [Forward] " << "Layer "
-//			<< layer_names_[i] << ", top blob " << blob_names_[top_id_vecs_[i][0]];
+//			<< layer_names_[i] /*<< ", top blob " << blob_names_[top_id_vecs_[i][0]]*/;
 //		LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
 		Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
+		for(int j = 0; j < bottom_vecs_[i].size(); ++j){//170915
+			bottom_vecs_[i][j]->decreaseRef();
+//			LOG(INFO)<<"\t"<<blob_names_[bottom_id_vecs_[i][j]]<<" reference: " << *(bottom_vecs_[i][j]->ref());;
+		}
 		if (i > 0 && i < end - 2
 				&& the_rest_layer_ids_.find(i) != the_rest_layer_ids_.end()) {
 			for(int j = 0; j < bottom_vecs_[i].size(); ++j){// 170718
-//				LOG(INFO)<<"ForwardFromTo_transfer_to_cpu: layer_id="<<i<<", "<<layer_names_[i]
-//				<<", bottom data "<< blob_names_[bottom_id_vecs_[i][j]];
-				bottom_vecs_[i][j]->TransferToCPU(stream);
+//				LOG(INFO) << blob_names_[bottom_id_vecs_[i][j]] << " reference: " << *(bottom_vecs_[i][j]->ref());
+//				transfered_layers << i << " ";
+				if(*(bottom_vecs_[i][j]->ref()) == 0){
+					/*LOG(INFO)<<"ForwardFromTo_transfer_to_cpu: layer_id="<<i<<" "<<layer_names_[i]
+					<<", bottom blob "<< blob_names_[bottom_id_vecs_[i][j]]<<" "<<bottom_vecs_[i][j]->data()
+					<<" sycedmem id: "<< allocated_syncedmem_[bottom_vecs_[i][j]->data()];*/
+					bottom_vecs_[i][j]->TransferToCPU(stream);
+//					CUDA_CHECK(cudaStreamSynchronize(stream));
+				}
 			}
 		}
 		if(relu_layer_ids_.find(i) != relu_layer_ids_.end()){//170728
@@ -1367,7 +1428,7 @@ void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
 	for (int i = start; i >= end; --i) {
 //		if (i)
 //			LOG_IF(INFO, Caffe::root_solver()) << "    [Backward] " << "Layer " << i << " "
-//				<< layer_names_[i] << ", bottom blob " << blob_names_[bottom_id_vecs_[i][0]];
+//				<< layer_names_[i] /*<< ", bottom blob " << blob_names_[bottom_id_vecs_[i][0]]*/;
 		if (layer_need_backward_[i]) {
 //			LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
 			layers_[i]->Backward(top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
@@ -1376,21 +1437,36 @@ void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
 				for (int top_id = 0; top_id < top_vecs_[i].size(); ++top_id){
 					if(top_vecs_[i][top_id]->diff() != top_vecs_[i][top_id]->data()){
 						top_vecs_[i][top_id]->diff()->~SyncedMemory();
-//						LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
+//						LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i]<<" release "
+//									<<blob_names_[top_id_vecs_[i][top_id]]<<" diff";
 					}
 				}
 			}
 		    //////////////////////////////////////////////////////////////////////////
 		}
-		if (i > 2 && i !=start && the_rest_layer_ids_.find(i - 2) != the_rest_layer_ids_.end()) {
-			for(int j = 0; j < bottom_vecs_[i - 2].size(); ++j){//170718
-//				LOG(INFO)<<"BackwardFromTo_transfer_to_gpu: layer_id="<<i-2<<", "<<layer_names_[i-2]<<
-//				", bottom data "<< blob_names_[bottom_id_vecs_[i-2][j]];
-				bottom_vecs_[i - 2][j]->TransferToGPU(stream);
+		if (i > 2 && i !=start && the_rest_layer_ids_.find(i - 1) != the_rest_layer_ids_.end()) {
+			/*for(int j = 0; j < top_vecs_[i].size(); ++j){
+				LOG(INFO) << "top blob " << blob_names_[top_id_vecs_[i][j]]<<" syncedmem id: "
+						<< allocated_syncedmem_[top_vecs_[i][j]->data()];
+			}
+			for(int j = 0; j < bottom_vecs_[i].size(); ++j){
+				LOG(INFO) << "bottom blob " << blob_names_[bottom_id_vecs_[i][j]]<<" syncedmem id: "
+						<< allocated_syncedmem_[bottom_vecs_[i][j]->data()];
+			}*/
+			for(int j = 0; j < bottom_vecs_[i - 1].size(); ++j){//170718/170915
+				if(*(bottom_vecs_[i - 1][j]->ref()) == 0){
+					/*LOG(INFO)<<"BackwardFromTo_transfer_to_gpu: layer_id="<<i-1<<" "<<layer_names_[i-1]<<
+					", bottom blob "<< blob_names_[bottom_id_vecs_[i-1][j]]<<" "<<bottom_vecs_[i-1][j]->data()
+					<<" sycedmem id: "<< allocated_syncedmem_[bottom_vecs_[i-1][j]->data()];*/
+					bottom_vecs_[i - 1][j]->TransferToGPU(stream);
+	//				transfered_layers << i - 1  << " ";
+	//				CUDA_CHECK(cudaStreamSynchronize(stream));
+					bottom_vecs_[i - 1][j]->decreaseRef();
+				}
 			}
 		}
-		if(relu_layer_ids_.find(i-2) != relu_layer_ids_.end()){//170728
-			layers_[i-2]->TransferDataToGPU(stream, bottom_vecs_[i-2][0]->count());
+		if(relu_layer_ids_.find(i-1) != relu_layer_ids_.end()){//170728
+			layers_[i-1]->TransferDataToGPU(stream, bottom_vecs_[i-1][0]->count());
 		}
 	}
 }

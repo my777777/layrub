@@ -280,13 +280,20 @@ class Blob {
     }
   inline void decreaseRef(){
 	  if((*reference_) == -1){
-		  LOG(INFO)<<"ref had been equal to -1";
+//		  LOG(INFO)<<"ref had been equal to -1";
 		  return;
 	  }
 	  (*reference_)--;
   }
-  inline int* Ref(){
+/*  inline int* Ref(){
 	  return reference_.get();
+  }*/
+  inline const shared_ptr<int>& ref() const{//170916
+	  return reference_;
+  }
+
+  inline void assign_ref(const int ref){
+	  (*reference_) = ref;
   }
   //////////////////////////////////////////////////
 

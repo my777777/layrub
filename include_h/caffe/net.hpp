@@ -259,6 +259,10 @@ class Net {
   void BackwardFromTo(int start, int end, cudaStream_t& stream);
   Dtype ForwardBackward(cudaStream_t& stream) {
   	Dtype loss;
+        for(int i = 0; i < blobs_.size(); ++i){
+            if(*(blobs_[i]->ref()) == -1 || *(blobs_[i]->ref()) == 0)
+		blobs_[i]->assign_ref(blobs_ref_[i]);
+        }
   	Forward(stream, &loss);
   	Backward(stream);
   	return loss;
@@ -357,6 +361,8 @@ class Net {
     map<int, int> blobId_layerId_;
     int char_relu_count_;//170728
     set<int> relu_layer_ids_;//170728
+    vector<int> blobs_ref_;//170915 keep intermediate blobs reference
+    map<shared_ptr<SyncedMemory>, int> allocated_syncedmem_;//170919 used for debug
 
     class MemoryBlock_{
     private:
