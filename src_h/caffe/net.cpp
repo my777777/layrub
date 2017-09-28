@@ -1444,7 +1444,7 @@ void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
 			}
 		    //////////////////////////////////////////////////////////////////////////
 		}
-		if (i > 2 && i !=start && the_rest_layer_ids_.find(i - 1) != the_rest_layer_ids_.end()) {
+		if (i > 1 && i !=start && the_rest_layer_ids_.find(i - 1) != the_rest_layer_ids_.end()) {
 			/*for(int j = 0; j < top_vecs_[i].size(); ++j){
 				LOG(INFO) << "top blob " << blob_names_[top_id_vecs_[i][j]]<<" syncedmem id: "
 						<< allocated_syncedmem_[top_vecs_[i][j]->data()];
