@@ -569,7 +569,7 @@ void Blob<Dtype>::SetDataTo(shared_ptr<SyncedMemory> shared) {
 }
 
 template<typename Dtype>
-void Blob<Dtype>::TransferToCPU(cudaStream_t& stream) {
+void Blob<Dtype>::TransferToCPU(const cudaStream_t& stream) {
 	CHECK(data_);
 //	CHECK(!data_cpu_ptr_);
 	data_cpu_ptr_ = data_->transfer_to_cpu(stream, sizeof(Dtype) * count(),
@@ -578,7 +578,7 @@ void Blob<Dtype>::TransferToCPU(cudaStream_t& stream) {
 }
 
 template<typename Dtype>
-void Blob<Dtype>::TransferToGPU(cudaStream_t& stream) {
+void Blob<Dtype>::TransferToGPU(const cudaStream_t& stream) {
 	CHECK(data_);
 	if(data_cpu_ptr_){
 		data_->transfer_to_gpu(stream, sizeof(Dtype) * count(), data_cpu_ptr_);

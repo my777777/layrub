@@ -291,7 +291,8 @@ void Solver<Dtype>::Solve(const char* resume_file) {
 
   //////////////////////////////////////////////////////////////////////////////
 //  CUDA_CHECK(cudaStreamCreate(&transfer_stream_));
-  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamDefault));
+  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamNonBlocking));
+//  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamDefault));
   //////////////////////////////////////////////////////////////////////////////
 
   Step(param_.max_iter() - iter_);
@@ -332,6 +333,7 @@ void Solver<Dtype>::Solve(const char* resume_file) {
 
   /////////////////////////////////////////////////////////////////////////////////////
   CUDA_CHECK(cudaStreamDestroy(transfer_stream_));
+//  CUDA_CHECK(cudaStreamDestroy(transfer_stream2_));
   /////////////////////////////////////////////////////////////////////////////////////
 
 }

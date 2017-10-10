@@ -269,8 +269,8 @@ class Blob {
   //////////////////////////////////////////////////
   void SetDiffTo(shared_ptr<SyncedMemory> shared);
   void SetDataTo(shared_ptr<SyncedMemory> shared);
-  void TransferToCPU(cudaStream_t& stream);
-  void TransferToGPU(cudaStream_t& stream);
+  void TransferToCPU(const cudaStream_t& stream);
+  void TransferToGPU(const cudaStream_t& stream);
   ~Blob();
   inline void increaseRef(){
 	  (*reference_)++;

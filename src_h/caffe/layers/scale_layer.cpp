@@ -219,7 +219,9 @@ void ScaleLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
 ////////////////////////////////////////////////////////////////////170806
 template <typename Dtype>
-void ScaleLayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
+void ScaleLayer<Dtype>::TransferDataToCPU(const cudaStream_t& stream, int count){
+	CUDA_CHECK(cudaStreamSynchronize(0));//ensure the temp_'s computation completed.
+	//	LOG(INFO)<<"Device Synchronized before transfer to cpu...";
 	temp_.TransferToCPU(stream);
 	////////////////////////////////////////////////////170810
 	//sum_multiplier_.TransferToCPU(stream); sum_multiplier_ only need in Backward, so don't need to offload
@@ -228,7 +230,7 @@ void ScaleLayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
 }
 
 template <typename Dtype>
-void ScaleLayer<Dtype>::TransferDataToGPU(cudaStream_t& stream, int count){
+void ScaleLayer<Dtype>::TransferDataToGPU(const cudaStream_t& stream, int count){
 	temp_.TransferToGPU(stream);
 	////////////////////////////////////////////////////170810
 	//sum_multiplier_.TransferToGPU(stream); sum_multiplier_ only need in Backward, so don't need to load

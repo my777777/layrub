@@ -44,8 +44,8 @@ class ReLULayer : public NeuronLayer<Dtype> {
   }
 
   void SetCharBottomDataTo(shared_ptr<SyncedMemory> shared);
-  void TransferDataToCPU(cudaStream_t& stream, int count);
-  void TransferDataToGPU(cudaStream_t& stream, int count);
+  void TransferDataToCPU(const cudaStream_t& stream, int count);
+  void TransferDataToGPU(const cudaStream_t& stream, int count);
 ///////////////////////////////////////////////////////////////////
  protected:
   //////////////////////////////////////////////////////////// 2

@@ -243,7 +243,9 @@ void BatchNormLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
 ////////////////////////////////////////////////////////////////////170806
 template <typename Dtype>
-void BatchNormLayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
+void BatchNormLayer<Dtype>::TransferDataToCPU(const cudaStream_t& stream, int count){
+	CUDA_CHECK(cudaStreamSynchronize(0));//ensure these data's computation completed.
+	//	LOG(INFO)<<"Device Synchronized before transfer to cpu...";
 	temp_.TransferToCPU(stream);
 	x_norm_.TransferToCPU(stream);
 	////////////////////////////////////////////////////170810
@@ -257,7 +259,7 @@ void BatchNormLayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
 }
 
 template <typename Dtype>
-void BatchNormLayer<Dtype>::TransferDataToGPU(cudaStream_t& stream, int count){
+void BatchNormLayer<Dtype>::TransferDataToGPU(const cudaStream_t& stream, int count){
 	temp_.TransferToGPU(stream);
 	x_norm_.TransferToGPU(stream);
 	////////////////////////////////////////////////////170810

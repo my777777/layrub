@@ -253,11 +253,11 @@ class Net {
   }
 
   ///////////////////////////////////////////////////////////////////////////////////
-  const vector<Blob<Dtype>*>& Forward(cudaStream_t& stream, Dtype* loss = NULL);
-  Dtype ForwardFromTo(int start, int end, cudaStream_t& stream);
-  void Backward(cudaStream_t& stream);
-  void BackwardFromTo(int start, int end, cudaStream_t& stream);
-  Dtype ForwardBackward(cudaStream_t& stream) {
+  const vector<Blob<Dtype>*>& Forward(const cudaStream_t& stream, Dtype* loss = NULL);
+  Dtype ForwardFromTo(int start, int end, const cudaStream_t& stream);
+  void Backward(const cudaStream_t& stream);
+  void BackwardFromTo(int start, int end, const cudaStream_t& stream);
+  Dtype ForwardBackward(const cudaStream_t& stream) {
   	Dtype loss;
         for(int i = 0; i < blobs_.size(); ++i){
             if(*(blobs_[i]->ref()) == -1 || *(blobs_[i]->ref()) == 0)

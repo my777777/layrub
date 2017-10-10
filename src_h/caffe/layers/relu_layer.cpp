@@ -37,13 +37,18 @@ void ReLULayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
 ////////////////////////////////////////////////////////////////////170728
 template <typename Dtype>
-void ReLULayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
+void ReLULayer<Dtype>::TransferDataToCPU(const cudaStream_t& stream, int count){
 	CHECK(char_bottom_data);
+	/*while(cudaStreamQuery(0) != cudaSuccess){//170929
+		LOG(INFO)<<"fw compute cause delay, layer relu";
+	}*/
+	CUDA_CHECK(cudaStreamSynchronize(0));//ensure the char_bottom_data's computation completed.
+//	LOG(INFO)<<"Device Synchronized before transfer to cpu...";
 	char_data_cpu_ptr_ = char_bottom_data->transfer_to_cpu(stream, count*sizeof(char), char_data_cpu_ptr_);
 }
 
 template <typename Dtype>
-void ReLULayer<Dtype>::TransferDataToGPU(cudaStream_t& stream, int count){
+void ReLULayer<Dtype>::TransferDataToGPU(const cudaStream_t& stream, int count){
 	CHECK(char_bottom_data);
 	CHECK(char_data_cpu_ptr_);
 	char_bottom_data->transfer_to_gpu(stream, count*sizeof(char), char_data_cpu_ptr_);

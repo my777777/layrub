@@ -1375,7 +1375,7 @@ const shared_ptr<Layer<Dtype> > Net<Dtype>::layer_by_name(
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename Dtype>
-Dtype Net<Dtype>::ForwardFromTo(int start, int end, cudaStream_t& stream) {
+Dtype Net<Dtype>::ForwardFromTo(int start, int end, const cudaStream_t& stream) {
 	CHECK_GE(start, 0);
 	CHECK_LT(end, layers_.size());
 	Dtype loss = 0;
@@ -1384,10 +1384,20 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end, cudaStream_t& stream) {
 //			<< layer_names_[i] /*<< ", top blob " << blob_names_[top_id_vecs_[i][0]]*/;
 //		LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
 		Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
+		/*for(int j = 0; j < bottom_vecs_[i].size(); ++j){
+			LOG(INFO)<<"Forward layer id = "<<i<<", bottom blob "<<blob_names_[bottom_id_vecs_[i][j]]
+			<<" sycedmem id: "<< allocated_syncedmem_[bottom_vecs_[i][j]->data()];
+		}
+		for(int j = 0; j < top_vecs_[i].size(); ++j){
+			LOG(INFO)<<"\t\t\ttop blob "<<blob_names_[top_id_vecs_[i][j]]
+			<<" sycedmem id: "<< allocated_syncedmem_[top_vecs_[i][j]->data()];
+		}*/
 		for(int j = 0; j < bottom_vecs_[i].size(); ++j){//170915
 			bottom_vecs_[i][j]->decreaseRef();
 //			LOG(INFO)<<"\t"<<blob_names_[bottom_id_vecs_[i][j]]<<" reference: " << *(bottom_vecs_[i][j]->ref());;
 		}
+//		CUDA_CHECK(cudaDeviceSynchronize());
+//		LOG(INFO)<<"Device Synchronized after forward compute...";
 		if (i > 0 && i < end - 2
 				&& the_rest_layer_ids_.find(i) != the_rest_layer_ids_.end()) {
 			for(int j = 0; j < bottom_vecs_[i].size(); ++j){// 170718
@@ -1404,14 +1414,25 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end, cudaStream_t& stream) {
 		}
 		if(relu_layer_ids_.find(i) != relu_layer_ids_.end()){//170728
 			layers_[i]->TransferDataToCPU(stream, bottom_vecs_[i][0]->count());
+//			LOG(INFO)<<"ForwardFromTo_transfer_to_cpu: layer_id="<<i<<" "<<layer_names_[i];
 		}
+		CUDA_CHECK(cudaStreamSynchronize(stream));
+		CUDA_CHECK(cudaStreamSynchronize(0));
+//		CUDA_CHECK(cudaDeviceSynchronize());
+//		LOG(INFO)<<"Device Synchronized after transfer to cpu...";
+		/*while(cudaStreamQuery(stream) != cudaSuccess){
+			LOG(INFO)<<"transfer to cpu cause delay"<<", layer id ="<<i;
+		}
+		while(cudaStreamQuery(0) != cudaSuccess){
+			LOG(INFO)<<"fw compute cause delay"<<", layer id ="<<i;
+		}*/
 		loss += layer_loss;
 	}
 	return loss;
 }
 
 template<typename Dtype>
-const vector<Blob<Dtype>*>& Net<Dtype>::Forward(cudaStream_t& stream,
+const vector<Blob<Dtype>*>& Net<Dtype>::Forward(const cudaStream_t& stream,
 		Dtype* loss) {
 	if (loss != NULL) {
 		*loss = ForwardFromTo(0, layers_.size() - 1, stream);
@@ -1422,7 +1443,7 @@ const vector<Blob<Dtype>*>& Net<Dtype>::Forward(cudaStream_t& stream,
 }
 
 template<typename Dtype>
-void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
+void Net<Dtype>::BackwardFromTo(int start, int end, const cudaStream_t& stream) {
 	CHECK_GE(end, 0);
 	CHECK_LT(start, layers_.size());
 	for (int i = start; i >= end; --i) {
@@ -1432,19 +1453,29 @@ void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
 		if (layer_need_backward_[i]) {
 //			LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i];
 			layers_[i]->Backward(top_vecs_[i], bottom_need_backward_[i], bottom_vecs_[i]);
+			/*for(int j = 0; j < top_vecs_[i].size(); ++j){
+				LOG(INFO)<<"Backward layer id = "<<i<<", top blob "<<blob_names_[top_id_vecs_[i][j]]
+				<<" sycedmem id: "<< allocated_syncedmem_[top_vecs_[i][j]->data()];
+			}
+			for(int j = 0; j < bottom_vecs_[i].size(); ++j){
+				LOG(INFO)<<"\t\t\tbottom blob "<<blob_names_[bottom_id_vecs_[i][j]]
+				<<" sycedmem id: "<< allocated_syncedmem_[bottom_vecs_[i][j]->data()];
+			}*/
 		    ////////////////////////////////////////////////////////////////////170722
 			if(inplace_layer_ids_.find(i) == inplace_layer_ids_.end() && loss_layer_ids_.find(i) == loss_layer_ids_.end()){
 				for (int top_id = 0; top_id < top_vecs_[i].size(); ++top_id){
 					if(top_vecs_[i][top_id]->diff() != top_vecs_[i][top_id]->data()){
 						top_vecs_[i][top_id]->diff()->~SyncedMemory();
-//						LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i]<<" release "
-//									<<blob_names_[top_id_vecs_[i][top_id]]<<" diff";
+						/*LOG(INFO)<<"layer id = "<<i<<", "<<layer_names_[i]<<" release "
+									<<blob_names_[top_id_vecs_[i][top_id]]<<" diff";*/
 					}
 				}
 			}
 		    //////////////////////////////////////////////////////////////////////////
 		}
-		if (i > 1 && i !=start && the_rest_layer_ids_.find(i - 1) != the_rest_layer_ids_.end()) {
+//		CUDA_CHECK(cudaDeviceSynchronize());
+//		LOG(INFO)<<"Device Synchronized after backward compute...";
+		if (i > 1 && i < start-1 && the_rest_layer_ids_.find(i - 1) != the_rest_layer_ids_.end()) {
 			/*for(int j = 0; j < top_vecs_[i].size(); ++j){
 				LOG(INFO) << "top blob " << blob_names_[top_id_vecs_[i][j]]<<" syncedmem id: "
 						<< allocated_syncedmem_[top_vecs_[i][j]->data()];
@@ -1458,21 +1489,35 @@ void Net<Dtype>::BackwardFromTo(int start, int end, cudaStream_t& stream) {
 					/*LOG(INFO)<<"BackwardFromTo_transfer_to_gpu: layer_id="<<i-1<<" "<<layer_names_[i-1]<<
 					", bottom blob "<< blob_names_[bottom_id_vecs_[i-1][j]]<<" "<<bottom_vecs_[i-1][j]->data()
 					<<" sycedmem id: "<< allocated_syncedmem_[bottom_vecs_[i-1][j]->data()];*/
+					for(int k = 0; k < top_vecs_[i].size(); ++k)
+						if(bottom_vecs_[i - 1][j]->data() == top_vecs_[i][k]->data())
+							CUDA_CHECK(cudaStreamSynchronize(0));
 					bottom_vecs_[i - 1][j]->TransferToGPU(stream);
-	//				transfered_layers << i - 1  << " ";
-	//				CUDA_CHECK(cudaStreamSynchronize(stream));
+//					transfered_layers << i - 1  << " ";
+//					CUDA_CHECK(cudaStreamSynchronize(stream));
 					bottom_vecs_[i - 1][j]->decreaseRef();
 				}
 			}
 		}
 		if(relu_layer_ids_.find(i-1) != relu_layer_ids_.end()){//170728
 			layers_[i-1]->TransferDataToGPU(stream, bottom_vecs_[i-1][0]->count());
+//			LOG(INFO)<<"BackwardFromTo_transfer_to_gpu: layer_id="<<i-1<<" "<<layer_names_[i-1];
 		}
+		CUDA_CHECK(cudaStreamSynchronize(stream));
+		CUDA_CHECK(cudaStreamSynchronize(0));
+//		CUDA_CHECK(cudaDeviceSynchronize());
+//		LOG(INFO)<<"Device Synchronized after transfer to gpu...";
+		/*while(cudaStreamQuery(stream) != cudaSuccess){
+			LOG(INFO)<<"transfer to gpu cause delay"<<", layer id ="<<i;
+		}
+		while(cudaStreamQuery(0) != cudaSuccess){
+			LOG(INFO)<<"bw compute cause delay"<<", layer id ="<<i;
+		}*/
 	}
 }
 
 template<typename Dtype>
-void Net<Dtype>::Backward(cudaStream_t& stream) {
+void Net<Dtype>::Backward(const cudaStream_t& stream) {
 	BackwardFromTo(layers_.size() - 1, 0, stream);
 }
 ////////////////////////////////////////////////////////////////////////////////////////

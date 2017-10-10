@@ -208,7 +208,7 @@ void SyncedMemory::resize(const size_t size) {
 											<< "cpu_malloc_use_cuda state error in resize()";
 }
 
-void* SyncedMemory::transfer_to_cpu(cudaStream_t& stream, const size_t size,
+void* SyncedMemory::transfer_to_cpu(const cudaStream_t& stream, const size_t size,
 		void* cpu_ptr) {
 	CHECK(gpu_ptr_);
 	CHECK(head_ == HEAD_AT_GPU) << "head_: " << head_;
@@ -220,7 +220,7 @@ void* SyncedMemory::transfer_to_cpu(cudaStream_t& stream, const size_t size,
 	return cpu_ptr;
 }
 
-void SyncedMemory::transfer_to_gpu(cudaStream_t& stream, const size_t size,
+void SyncedMemory::transfer_to_gpu(const cudaStream_t& stream, const size_t size,
 		const void* cpu_ptr) {
 	CHECK(cpu_ptr);
 	CHECK(gpu_ptr_);
