@@ -292,10 +292,10 @@ class Layer {
   }
 
   //////////////////////////////////////////////////////////////170806
-  virtual void TransferDataToCPU(cudaStream_t& stream, int count){
+  virtual void TransferDataToCPU(const cudaStream_t& stream, int count){
 	  LOG(INFO)<<"you should implement this function";
   }
-  virtual void TransferDataToGPU(cudaStream_t& stream, int count){
+  virtual void TransferDataToGPU(const cudaStream_t& stream, int count){
 	  LOG(INFO)<<"you should implement this function";
   }
   ////////////////////////////////////////////////////////////////////

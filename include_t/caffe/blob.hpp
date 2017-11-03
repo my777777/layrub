@@ -24,7 +24,8 @@ template <typename Dtype>
 class Blob {
  public:
   Blob()
-       : data_(), diff_(), count_(0), capacity_(0), data_cpu_ptr_(NULL), reference_ (new int(0)) {}//////////////////////////
+       : data_(), diff_(), count_(0), capacity_(0), data_cpu_ptr_(NULL),
+		 reference_ (new int(0)), diff_memory_block_number_(-1) {}//////////////////////////
 
   /// @brief Deprecated; use <code>Blob(const vector<int>& shape)</code>.
   explicit Blob(const int num, const int channels, const int height,
@@ -269,8 +270,8 @@ class Blob {
   //////////////////////////////////////////////////
   void SetDiffTo(shared_ptr<SyncedMemory> shared);
   void SetDataTo(shared_ptr<SyncedMemory> shared);
-  void TransferToCPU(cudaStream_t& stream);
-  void TransferToGPU(cudaStream_t& stream);
+  void TransferToCPU(const cudaStream_t& stream);
+  void TransferToGPU(const cudaStream_t& stream);
   ~Blob();
   inline void increaseRef(){
 	  (*reference_)++;
@@ -280,7 +281,7 @@ class Blob {
     }
   inline void decreaseRef(){
 	  if((*reference_) == -1){
-		  LOG(INFO)<<"ref had been equal to -1";
+//		  LOG(INFO)<<"ref had been equal to -1";
 //		  CHECK(0);
 		  return;
 	  }
@@ -292,6 +293,14 @@ class Blob {
 
   inline void assign_ref(const int ref){
 	  (*reference_) = ref;
+  }
+
+  inline int getMemBlockNumOfDiff() const{//20171017
+	  return diff_memory_block_number_;
+  }
+
+  inline void setMemBlockNumOfDiff(const int num){//20171017
+  	   diff_memory_block_number_ = num;
   }
   //////////////////////////////////////////////////
 
@@ -306,6 +315,7 @@ class Blob {
   //////////////////////////////////////////////////
   void* data_cpu_ptr_;
   shared_ptr<int> reference_;//170704
+  int diff_memory_block_number_; //20171017
   //////////////////////////////////////////////////
 
   DISABLE_COPY_AND_ASSIGN(Blob);

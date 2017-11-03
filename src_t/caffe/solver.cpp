@@ -264,6 +264,9 @@ void Solver<Dtype>::Step(int iters) {
       Snapshot();
     }
     if (SolverAction::STOP == request) {
+      ////////////////////////////////////////////////////////20171017
+      TestAll();
+      ////////////////////////////////////////////////////////////////
       requested_early_exit_ = true;
       // Break out of training loop.
       break;
@@ -291,7 +294,8 @@ void Solver<Dtype>::Solve(const char* resume_file) {
 
   //////////////////////////////////////////////////////////////////////////////
 //  CUDA_CHECK(cudaStreamCreate(&transfer_stream_));
-  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamDefault));
+  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamNonBlocking));
+//  CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream_, cudaStreamDefault));
   //////////////////////////////////////////////////////////////////////////////
 
   Step(param_.max_iter() - iter_);
