@@ -1294,7 +1294,6 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end, const cudaStream_t& stream) 
 		/*LOG_IF(INFO, Caffe::root_solver()) << "    [Forward] " << "Layer "
 			<< layer_names_[i] << ", top blob " << blob_names_[top_id_vecs_[i][0]];*/
 		Dtype layer_loss = layers_[i]->Forward(bottom_vecs_[i], top_vecs_[i]);
-		CUDA_CHECK(cudaStreamSynchronize(stream));
 		CUDA_CHECK(cudaStreamSynchronize(0));
 		for(int j = 0; j < bottom_vecs_[i].size(); ++j){
 			bottom_vecs_[i][j]->decreaseRef();
@@ -1321,6 +1320,8 @@ Dtype Net<Dtype>::ForwardFromTo(int start, int end, const cudaStream_t& stream) 
 			layers_[i]->TransferDataToCPU(stream, bottom_vecs_[i][0]->count());
 //			CUDA_CHECK(cudaStreamSynchronize(stream));
 		}
+		CUDA_CHECK(cudaStreamSynchronize(stream));
+		CUDA_CHECK(cudaStreamSynchronize(0));
 		loss += layer_loss;
 	}
 //	LOG(INFO) << transfered_layers.str();
