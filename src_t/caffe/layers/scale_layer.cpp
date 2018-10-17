@@ -219,12 +219,12 @@ void ScaleLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
 
 ////////////////////////////////////////////////////////////////////170806
 template <typename Dtype>
-void ScaleLayer<Dtype>::TransferDataToCPU(cudaStream_t& stream, int count){
+void ScaleLayer<Dtype>::TransferDataToCPU(const cudaStream_t& stream, int count){
 	temp_.TransferToCPU(stream);
 }
 
 template <typename Dtype>
-void ScaleLayer<Dtype>::TransferDataToGPU(cudaStream_t& stream, int count){
+void ScaleLayer<Dtype>::TransferDataToGPU(const cudaStream_t& stream, int count){
 	temp_.TransferToGPU(stream);
 }
 

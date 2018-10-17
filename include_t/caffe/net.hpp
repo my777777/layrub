@@ -253,11 +253,11 @@ class Net {
   }
 
   ///////////////////////////////////////////////////////////////////////////////////
-  const vector<Blob<Dtype>*>& Forward(cudaStream_t& stream, Dtype* loss = NULL);
-  Dtype ForwardFromTo(int start, int end, cudaStream_t& stream);
-  void Backward(cudaStream_t& stream);
-  void BackwardFromTo(int start, int end, cudaStream_t& stream);
-  Dtype ForwardBackward(cudaStream_t& stream) {
+  const vector<Blob<Dtype>*>& Forward(const cudaStream_t& stream, Dtype* loss = NULL);
+  Dtype ForwardFromTo(int start, int end, const cudaStream_t& stream);
+  void Backward(const cudaStream_t& stream);
+  void BackwardFromTo(int start, int end, const cudaStream_t& stream);
+  Dtype ForwardBackward(const cudaStream_t& stream) {//170915
   	Dtype loss;
 	for(int i = 0; i < blobs_.size(); ++i){
 //		*(blobs_[i]->Ref()) = blobs_ref_[i];
@@ -267,10 +267,10 @@ class Net {
 //		LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
 	}
   	Forward(stream, &loss);
-  	for(int i = 0; i < blobs_.size(); ++i){
+  	/*for(int i = 0; i < blobs_.size(); ++i){
 //  		LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
   		CHECK_EQ(*(blobs_[i]->ref()), 0);
-  	}
+  	}*/
   	Backward(stream);
 //  	for(int i = 0; i < blobs_.size(); ++i){
 //  	  	LOG(INFO) << i << blob_names_[i] << " reference: " << *(blobs_[i]->Ref_const());
